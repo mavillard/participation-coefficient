@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Participation Coefficient — Five-Community Explorer</title>
+  <style>
+    :root {
+      --bg: #f7f9fc; --ink: #1a2a41; --muted: #58697f;
+      --card: #fff; --line: #dce4ed; --accent: #2349a2;
+      --a: #e59b36; --b: #288d9c; --c: #9263c4;
+      --d: #3e9a69; --e: #d05b75;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 36px 20px 70px; background: var(--bg); color: var(--ink); font: 16px/1.48 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    main { max-width: 960px; margin: 0 auto; }
+    h1 { font-size: clamp(25px,4vw,36px); line-height: 1.18; letter-spacing: -.035em; margin: 0 0 12px; }
+    .subtitle { color: var(--muted); max-width: 790px; margin: 0 0 24px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 10px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 18px; }
+    .preset { font: inherit; font-size: 13px; font-weight: 570; min-height: 41px; color: var(--ink); background: var(--card); border: 1px solid #cfd9e5; border-radius: 99px; padding: 8px 14px; cursor: pointer; }
+    .preset:hover { border-color: var(--accent); }
+    .preset[aria-pressed="true"] { background: #eaf0ff; color: #173b91; border-color: #6382c4; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #648cef; outline-offset: 3px; }
+    .network-card, .control-card, .result-card, .summary-card { background: var(--card); border: 1px solid var(--line); border-radius: 15px; }
+    .network-card { overflow: hidden; }
+    .canvas-scroll { overflow-x: auto; }
+    svg { display: block; width: 100%; min-width: 670px; height: auto; }
+    .network-caption { padding: 0 24px 18px; margin: 0; color: var(--muted); font-size: 12px; }
+    .distribution { margin: 23px 0 19px; }
+    .row { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+    .row strong { font-size: 15px; }
+    #totalLinks { font-variant-numeric: tabular-nums; font-size: 14px; }
+    .stack { display: flex; width: 100%; height: 17px; border-radius: 999px; background: #e7edf3; overflow: hidden; margin-top: 12px; }
+    .stack div { transition: width .14s; }
+    .legend { display: flex; gap: 21px; flex-wrap: wrap; margin-top: 11px; font-size: 13px; color: var(--muted); }
+    .key { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .control-card, .result-card { padding: 24px; }
+    h2 { font-size: 17px; margin: 0 0 20px; }
+    .slider-group + .slider-group { margin-top: 17px; }
+    .slider-group label { display: flex; justify-content: space-between; font-weight: 570; font-size: 14px; gap: 8px; }
+    output { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    input[type='range'] { width: 100%; height: 27px; margin: 8px 0 0; accent-color: var(--accent); cursor: pointer; }
+    .result-card { background: #f0f4fa; display: flex; flex-direction: column; }
+    .measure-label { color: var(--muted); font-size: 14px; font-weight: 600; }
+    #score { font-size: clamp(40px, 6vw, 60px); font-weight: 750; letter-spacing: -.05em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+    #formula { font-family: ui-monospace,SFMono-Regular,Consolas,monospace; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; margin: 0; }
+    .divider { border-top: 1px solid #d2dce9; margin: 19px 0 13px; }
+    #interpretation { margin: 0 0 12px; font-size: 14px; }
+    #maximum { margin: auto 0 0; color: var(--muted); font-size: 12px; }
+    .summary-card { margin-top: 20px; padding: 20px 24px; }
+    .summary-card h2 { margin-bottom: 10px; }
+    .summary-card p { color: var(--muted); font-size: 14px; margin: 0 0 11px; }
+    .summary-card p:last-child { margin-bottom: 0; }
+    .formula-line { font-family: Georgia,serif; font-size: 20px; text-align: center; color: var(--ink) !important; }
+    .small { font-size: 12px !important; }
+    @media (max-width: 660px) { body { padding: 24px 12px 38px; } .details { grid-template-columns: 1fr; } .control-card,.result-card { padding: 18px; } .network-caption { padding: 0 15px 16px; } .preset { flex-grow: 1; } }
+    @media (prefers-reduced-motion: reduce) { .stack div { transition: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Network analysis · Interactive lesson</div>
+  <h1>Participation Coefficient</h1>
+  <p class="subtitle">See how node <strong>N</strong>'s participation coefficient changes when you redistribute its connections among <strong>five communities</strong>. Choose an example or move the sliders to explore.</p>
+  <div class="presets" role="group" aria-label="Example connection patterns">
+    <button type="button" class="preset" data-preset="10,0,0,0,0">One group · 10:0:0:0:0</button>
+    <button type="button" class="preset" data-preset="9,1,0,0,0">Uneven · 9:1:0:0:0</button>
+    <button type="button" class="preset" data-preset="5,5,0,0,0">Two groups · 5:5:0:0:0</button>
+    <button type="button" class="preset" data-preset="4,4,4,0,0">Three groups · 4:4:4:0:0</button>
+    <button type="button" class="preset" data-preset="3,3,3,3,0">Four groups · 3:3:3:3:0</button>
+    <button type="button" class="preset" data-preset="2,2,2,2,2">Five groups · 2:2:2:2:2</button>
+    <button type="button" class="preset" data-preset="1,1,0,0,0">Few edges · 1:1:0:0:0</button>
+    <button type="button" class="preset" data-preset="10,10,0,0,0">Many edges · 10:10:0:0:0</button>
+    <button type="button" class="preset" data-preset="10,10,10,10,10">All connected · 10:10:10:10:10</button>
+  </div>
+
+  <section class="network-card" aria-label="Network visualization">
+    <div class="canvas-scroll">
+      <svg id="network" viewBox="0 0 960 615" role="img" aria-label="Node N in the middle connected to nodes in communities A, B, C, D and E. Colored lines show N's connections; grey nodes are not connected to N.">
+        <g id="community-panels"></g>
+        <g id="edges"></g>
+        <g id="nodes"></g>
+        <g id="community-labels"></g>
+        <circle cx="480" cy="312" r="29" fill="var(--ink)" stroke="#fff" stroke-width="4"/>
+        <text x="480" y="320" text-anchor="middle" font-size="22" font-weight="750" fill="#fff">N</text>
+        <rect x="401" y="341" width="158" height="29" rx="12" fill="#fff" fill-opacity="0.96"/>
+        <text x="480" y="360" text-anchor="middle" font-size="13" fill="var(--muted)">Node being measured</text>
+      </svg>
+    </div>
+    <p class="network-caption">Each community contains ten nodes. Grey nodes aren't connected to N. Only N's connections are drawn; edges within communities are omitted.</p>
+  </section>
+
+  <section class="distribution" aria-label="Connection distribution">
+    <div class="row"><strong>How N's connections are distributed</strong><span id="totalLinks">10 connections</span></div>
+    <div class="stack" aria-hidden="true">
+      <div id="barA" style="width:20%;background:var(--a)"></div>
+      <div id="barB" style="width:20%;background:var(--b)"></div>
+      <div id="barC" style="width:20%;background:var(--c)"></div>
+      <div id="barD" style="width:20%;background:var(--d)"></div>
+      <div id="barE" style="width:20%;background:var(--e)"></div>
+    </div>
+    <div class="legend" aria-live="polite">
+      <span><span class="key" style="background:var(--a)"></span>A: <strong id="shareA">20%</strong></span>
+      <span><span class="key" style="background:var(--b)"></span>B: <strong id="shareB">20%</strong></span>
+      <span><span class="key" style="background:var(--c)"></span>C: <strong id="shareC">20%</strong></span>
+      <span><span class="key" style="background:var(--d)"></span>D: <strong id="shareD">20%</strong></span>
+      <span><span class="key" style="background:var(--e)"></span>E: <strong id="shareE">20%</strong></span>
+    </div>
+  </section>
+
+  <div class="details">
+    <section class="control-card" aria-label="Connection controls">
+      <h2>Change the connections</h2>
+      <div class="slider-group"><label for="sliderA"><span>Community A</span><output id="valueA" for="sliderA">2 links</output></label><input id="sliderA" type="range" min="0" max="10" step="1" value="2"></div>
+      <div class="slider-group"><label for="sliderB"><span>Community B</span><output id="valueB" for="sliderB">2 links</output></label><input id="sliderB" type="range" min="0" max="10" step="1" value="2"></div>
+      <div class="slider-group"><label for="sliderC"><span>Community C</span><output id="valueC" for="sliderC">2 links</output></label><input id="sliderC" type="range" min="0" max="10" step="1" value="2"></div>
+      <div class="slider-group"><label for="sliderD"><span>Community D</span><output id="valueD" for="sliderD">2 links</output></label><input id="sliderD" type="range" min="0" max="10" step="1" value="2"></div>
+      <div class="slider-group"><label for="sliderE"><span>Community E</span><output id="valueE" for="sliderE">2 links</output></label><input id="sliderE" type="range" min="0" max="10" step="1" value="2"></div>
+    </section>
+    <section class="result-card" aria-label="Computed participation coefficient" aria-live="polite" aria-atomic="true">
+      <div class="measure-label">Participation coefficient</div>
+      <div id="score">0.800</div>
+      <p id="formula">1 − [(2/10)² + (2/10)² + (2/10)² + (2/10)² + (2/10)²] = 0.800</p>
+      <div class="divider"></div>
+      <p id="interpretation">Perfectly balanced across five communities. This is the maximum possible coefficient in this five-community network.</p>
+      <p id="maximum">Maximum for five communities: 0.800</p>
+    </section>
+  </div>
+
+  <section class="summary-card">
+    <h2>What's happening?</h2>
+    <p class="formula-line">P(N) = 1 − Σ (connections to community / all connections)²</p>
+    <p><strong>Balance matters:</strong> connections distributed equally across two communities give a higher coefficient than an unequal split.</p>
+    <p><strong>The number of connections doesn't matter on its own:</strong> try <strong>1:1:0:0:0</strong>, <strong>5:5:0:0:0</strong>, and <strong>10:10:0:0:0</strong>. All three give P = 0.500.</p>
+    <p><strong>More communities allow a higher maximum:</strong> evenly connecting to two, three, four, or five communities gives P = 0.500, 0.667, 0.750, or <strong>0.800</strong>, respectively.</p>
+    <p><strong>Connecting to all five:</strong> <strong>2:2:2:2:2</strong> and <strong>10:10:10:10:10</strong> both yield P = 0.800. No configuration using only five communities can reach 0.99; that would require at least 100 evenly represented communities.</p>
+    <p class="small">This explorer uses the standard unweighted participation coefficient. A node's own community is included in the calculation if it has neighbors there, just like any other community.</p>
+  </section>
+</main>
+<script>
+(() => {
+  'use strict';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const labels = ['A','B','C','D','E'];
+  const colors = ['#e59b36','#288d9c','#9263c4','#3e9a69','#d05b75'];
+  const panelFills = ['#fff9f0','#f0fbfc','#faf4ff','#f2fbf5','#fff4f6'];
+  const panelStrokes = ['#efddbe','#cbe7e9','#e5d6f4','#cfe7d5','#f4dce1'];
+  const boxes = [
+    {x:28, y:155, w:212, h:165},
+    {x:374,y:20,  w:212, h:160},
+    {x:720,y:155, w:212, h:165},
+    {x:611,y:426, w:212, h:165},
+    {x:137,y:426, w:212, h:165}
+  ];
+  const hub = {x:480,y:312};
+  const inputs = labels.map(c => document.getElementById('slider'+c));
+  const panels = document.getElementById('community-panels');
+  const panelLabels = document.getElementById('community-labels');
+  const edges = document.getElementById('edges');
+  const nodes = document.getElementById('nodes');
+  const points = boxes.map(box => Array.from({length:10}, (_,i) => [
+    box.x + 28 + (i%5)*37,
+    box.y + 72 + Math.floor(i/5)*34
+  ]));
+
+  function createSvg(tag, attrs, text) {
+    const el = document.createElementNS(svgNS,tag);
+    for (const [key,value] of Object.entries(attrs)) el.setAttribute(key,String(value));
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  boxes.forEach((box,g) => {
+    const c=labels[g];
+    panels.appendChild(createSvg('rect',{
+      x:box.x,y:box.y,width:box.w,height:box.h,rx:19,
+      fill:panelFills[g],stroke:panelStrokes[g]
+    }));
+    panels.appendChild(createSvg('circle',{
+      cx:box.x+15,cy:box.y+23,r:5,fill:colors[g]
+    }));
+    // Draw labels above the connection lines, so edges don't obscure the words.
+    panelLabels.appendChild(createSvg('rect',{
+      x:box.x+9,y:box.y+7,width:158,height:32,rx:9,fill:panelFills[g]
+    }));
+    panelLabels.appendChild(createSvg('text',{
+      x:box.x+28,y:box.y+29,'font-size':15,'font-weight':650,fill:'#1a2a41'
+    },'Community '+c));
+    panelLabels.appendChild(createSvg('rect',{
+      x:box.x+9,y:box.y+128,width:149,height:27,rx:7,fill:panelFills[g]
+    }));
+    panelLabels.appendChild(createSvg('text',{
+      x:box.x+16,y:box.y+145,'font-size':12,fill:'#58697f',id:'count'+c
+    },'2 links from N'));
+  });
+
+  function render() {
+    const counts = inputs.map(el => Number(el.value));
+    const total = counts.reduce((sum,n) => sum+n,0);
+    const represented = counts.filter(n => n>0).length;
+    const P = total ? 1-counts.reduce((sum,n) => sum+(n/total)**2,0) : 0;
+    const localMax = represented ? 1-1/represented : 0;
+    edges.replaceChildren();
+    nodes.replaceChildren();
+    counts.forEach((n,g) => {
+      const c=labels[g];
+      points[g].forEach(([x,y],i) => {
+        const connected = i<n;
+        if (connected) edges.appendChild(createSvg('line',{
+          x1:hub.x,y1:hub.y,x2:x,y2:y,stroke:colors[g],
+          'stroke-width':2.2,'stroke-opacity':0.66,'stroke-linecap':'round'
+        }));
+        nodes.appendChild(createSvg('circle',{
+          cx:x,cy:y,r:connected?7:5.7,fill:connected?colors[g]:'#cdd6e1',
+          stroke:connected?'#ffffff':'none','stroke-width':1.4
+        }));
+      });
+      document.getElementById('count'+c).textContent=n+' '+(n===1?'link':'links')+' from N';
+      document.getElementById('value'+c).textContent=n+' '+(n===1?'link':'links');
+      document.getElementById('share'+c).textContent=(total?Math.round(n/total*100):0)+'%';
+      document.getElementById('bar'+c).style.width=(total?n/total*100:0)+'%';
+    });
+    document.getElementById('totalLinks').textContent=total+' '+(total===1?'connection':'connections');
+    document.getElementById('score').textContent=P.toFixed(3);
+    document.getElementById('formula').textContent=total
+      ? '1 − ['+counts.map(n=>'('+n+'/'+total+')²').join(' + ')+'] = '+P.toFixed(3)
+      : 'With no connections, P = 0 by convention.';
+    let interpretation;
+    if (total===0) interpretation='N has no connections, so there is no distribution of connections to measure.';
+    else if (represented===1) interpretation='Every connection goes to the same community. There is no cross-community participation, so P = 0.';
+    else if (Math.abs(P-localMax)<1e-10 && represented===5) interpretation='Perfectly balanced across five communities. This is the maximum possible coefficient in this five-community network.';
+    else if (Math.abs(P-localMax)<1e-10) interpretation='Perfectly balanced across '+represented+' communities. The score could increase by spreading connections into additional communities.';
+    else interpretation='N connects to '+represented+' communities, but not equally. A more even distribution among these communities would increase P.';
+    document.getElementById('interpretation').textContent=interpretation;
+    document.getElementById('maximum').textContent=represented
+      ? 'Maximum for '+represented+' represented '+(represented===1?'community':'communities')+': '+localMax.toFixed(3)+'  ·  Maximum for all five: 0.800'
+      : 'Maximum for all five communities: 0.800';
+    const key=counts.join(',');
+    document.querySelectorAll('[data-preset]').forEach(button => {
+      button.setAttribute('aria-pressed',String(button.dataset.preset===key));
+    });
+  }
+
+  document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click',() => {
+    button.dataset.preset.split(',').forEach((value,i) => { inputs[i].value=value; });
+    render();
+  }));
+  inputs.forEach(input => input.addEventListener('input',render));
+  render();
+})();
+</script>
+</body>
+</html>
